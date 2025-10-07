@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'maven-publish'
     id 'application'
     id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
@@ -49,4 +50,30 @@ tasks.named('startShadowScripts') {
 
 tasks.build {
     dependsOn shadowJar
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = 'org.example'
+            artifactId = 'todo-app'
+            version = project.version
+
+            // публикуем именно fat JAR
+            artifact(tasks.shadowJar) {
+                classifier = null // имя вида todo-app-0.5.0.jar
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/GolobokovAndrei/todo-app")
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
+                password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
 }
