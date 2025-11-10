@@ -5,7 +5,7 @@ public class TodoApp {
     public static void main(String[] args) {
         TodoList list = new TodoList();
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Simple Todo CLI. Commands: add <task>, remove <index>, list, exit");
+        System.out.println("Simple Todo CLI. Commands: add <task>, remove <index>, list, clear, done <index>, search <query>, exit");
         while (true) {
             System.out.print("> ");
             if (!scanner.hasNextLine()) break;
@@ -42,12 +42,44 @@ public class TodoApp {
                     }
                     if (all.isEmpty()) System.out.println("(empty)");
                     break;
+                case "clear":
+                    list.clear();
+                    System.out.println("All tasks cleared.");
+                    break;
+                case "done":
+                    if (parts.length > 1) {
+                        try {
+                            int idx = Integer.parseInt(parts[1]);
+                            if (list.markDone(idx)) System.out.println("Task marked as done.");
+                            else System.out.println("Index out of range.");
+                        } catch (NumberFormatException e) {
+                            System.out.println("Invalid index.");
+                        }
+                    } else {
+                        System.out.println("Usage: done <index>");
+                    }
+                    break;
+                case "search":
+                    if (parts.length > 1) {
+                        List<String> results = list.search(parts[1]);
+                        if (results.isEmpty()) {
+                            System.out.println("No tasks found.");
+                        } else {
+                            System.out.println("Found tasks:");
+                            for (String result : results) {
+                                System.out.println(result);
+                            }
+                        }
+                    } else {
+                        System.out.println("Usage: search <query>");
+                    }
+                    break;
                 case "exit":
                     System.out.println("Bye!");
                     scanner.close();
                     return;
                 default:
-                    System.out.println("Unknown command. Commands: add, remove, list, exit");
+                    System.out.println("Unknown command. Commands: add, remove, list, clear, done, search, exit");
             }
         }
     }

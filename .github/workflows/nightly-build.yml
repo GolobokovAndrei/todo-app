@@ -1,0 +1,75 @@
+name: Nightly Build
+
+on:
+  schedule:
+    # Запуск каждый день в 2:00 UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # Возможность запустить вручную
+
+jobs:
+  stability-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Set up JDK 23
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '23'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Run tests
+        run: ./gradlew --no-daemon clean test
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_23_X64 || '' }}
+
+      - name: Build project
+        run: ./gradlew --no-daemon build
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_23_X64 || '' }}
+
+      - name: Generate test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Test Results
+          path: build/test-results/test/*.xml
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: build/test-results/test/
+          retention-days: 30
+
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-build
+          path: build/libs/*.jar
+          retention-days: 7
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::warning::Nightly build failed! Please check the logs."
+
